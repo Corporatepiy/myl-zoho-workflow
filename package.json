@@ -1,0 +1,22 @@
+{
+  "name": "myl-zoho-workflow",
+  "version": "1.0.0",
+  "description": "MakeYourLabel — Zoho CRM ↔ Synthflow workflow middleware",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "mcp": "node mcp-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "axios": "^1.6.0",
+    "express": "^4.18.0",
+    "node-cron": "^4.2.1",
+    "twilio": "^5.13.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
