@@ -12,7 +12,12 @@ function getAgentForPhone(phone) {
 async function triggerCall({ to, agentId, variables = {} }) {
   const res = await axios.post(
     `${SF_BASE}/calls`,
-    { phone_number: to, agent_id: agentId, dynamic_variables: variables },
+    {
+      model_id:          agentId,
+      phone:             to,
+      name:              `${variables.name || 'Founder'} — MYL call`,
+      dynamic_variables: variables,
+    },
     {
       headers: {
         Authorization:  `Bearer ${process.env.SYNTHFLOW_API_KEY}`,
