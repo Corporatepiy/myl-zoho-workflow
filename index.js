@@ -19,6 +19,7 @@ app.use('/api/intake',        require('./routes/intake'));
 app.use('/api/chat',          require('./routes/chat'));
 app.use('/api/paypal',        require('./routes/payment'));
 app.use('/api/panel',         require('./routes/panel'));
+app.use('/api/leads',         require('./routes/leads'));
 app.use('/api/call-insights', require('./routes/insights'));
 app.use('/webhook',           require('./routes/webhooks'));
 

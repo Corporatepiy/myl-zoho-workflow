@@ -103,4 +103,43 @@ async function createDeal({ name, email, phone, business, goal }) {
   }, { headers: zohoHeaders(token) });
 }
 
-module.exports = { createLead, updateLead, createDeal };
+async function getLead(email) {
+  if (!email) return null;
+  const token  = await getZohoToken();
+  const search = await axios.get(`${CRM_BASE}/Leads/search`, {
+    params:  { email },
+    headers: zohoHeaders(token),
+  });
+  return search.data?.data?.[0] || null;
+}
+
+async function addNote({ email, note }) {
+  const lead = await getLead(email);
+  if (!lead) throw new Error('Lead not found: ' + email);
+  const token = await getZohoToken();
+  await axios.post(`${CRM_BASE}/Notes`, {
+    data: [{
+      Note_Title:   'Co-founder note',
+      Note_Content: note,
+      Parent_Id:    lead.id,
+      $se_module:   'Leads',
+    }],
+  }, { headers: zohoHeaders(token) });
+}
+
+async function addTask({ email, task, due_date }) {
+  const lead = await getLead(email);
+  if (!lead) throw new Error('Lead not found: ' + email);
+  const token = await getZohoToken();
+  await axios.post(`${CRM_BASE}/Tasks`, {
+    data: [{
+      Subject:    task,
+      Due_Date:   due_date || new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      Status:     'Not Started',
+      $se_module: 'Leads',
+      What_Id:    lead.id,
+    }],
+  }, { headers: zohoHeaders(token) });
+}
+
+module.exports = { createLead, updateLead, createDeal, getLead, addNote, addTask };
