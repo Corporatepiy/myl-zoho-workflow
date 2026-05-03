@@ -1,0 +1,46 @@
+'use strict';
+
+const router = require('express').Router();
+const { createLead }              = require('../crm/zoho');
+const { getAgentForPhone, triggerCall } = require('../voice/synthflow');
+const { intakeLimit }             = require('../middleware/rate');
+
+// Landing page form → create Zoho lead → trigger Synthflow call.
+router.post('/', intakeLimit, async (req, res) => {
+  try {
+    const { name, email, phone, business, goal, category, budget, market, moment } = req.body;
+    if (!name || !email || !phone) {
+      return res.status(400).json({ error: 'name, email, phone required' });
+    }
+
+    const agentId = getAgentForPhone(phone);
+    if (!agentId) return res.status(400).json({ error: 'No agent configured for this region' });
+
+    await createLead({ name, email, phone, business, goal, category, budget });
+    await triggerCall({
+      to:      phone,
+      agentId,
+      variables: {
+        name,
+        email:    email    || '',
+        business: business || '',
+        goal:     goal     || 'launch my fashion label',
+        category: category || '',
+        budget:   budget   || '',
+        market:   market   || '',
+        moment:   moment   || '',
+        source:   'intake-form',
+        today:    new Date().toLocaleDateString('en-US', {
+          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+        }),
+      },
+    });
+
+    res.json({ triggered: true });
+  } catch (e) {
+    console.error('[intake]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+module.exports = router;
