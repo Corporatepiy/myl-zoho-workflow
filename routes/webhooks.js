@@ -2,6 +2,7 @@
 
 const router = require('express').Router();
 const { enrichCall }              = require('../brain');
+const { refreshPatterns, shouldRefresh } = require('../brain/patterns');
 const { updateLead }              = require('../crm/zoho');
 const { handleSuccessfulPayment, verifyPayPalWebhook } = require('../payments/paypal');
 const { parseCustomId }           = require('../payments/paypal');
@@ -69,6 +70,17 @@ router.post('/synthflow', (req, res) => {
           journeyStageRevenue: enrichment.journey_stage_revenue,
         }).catch(e => console.warn('[synthflow webhook] zoho update failed:', e.message));
       }
+
+      // Refresh pattern intelligence for this segment (fire-and-forget).
+      // Runs only when patterns are stale (>6 hrs) and segment has ≥5 calls.
+      const seg = {
+        category: enrichment.garment_category || 'all',
+        stage:    enrichment.founder_stage    || 'all',
+      };
+      shouldRefresh(seg)
+        .then(stale => stale && refreshPatterns(seg))
+        .catch(e => console.warn('[patterns] refresh error:', e.message));
+
     } catch (e) {
       console.error('[synthflow webhook]', e.message);
     }

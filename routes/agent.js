@@ -41,9 +41,9 @@ router.post('/blueprint', brainLimit, async (req, res) => {
 // Returns 1-2 sentences Alex speaks immediately.
 router.post('/consult-brain', brainLimit, async (req, res) => {
   try {
-    const { question, name, primary_goal, brand_context } = unwrap(req.body);
+    const { question, name, primary_goal, brand_context, category, stage } = unwrap(req.body);
     if (!question) return res.status(400).json({ error: 'question required' });
-    res.json(await consultBrain({ question, name, primary_goal, brand_context }));
+    res.json(await consultBrain({ question, name, primary_goal, brand_context, category, stage }));
   } catch (e) {
     console.error('[consult-brain]', e.message);
     res.status(500).json({ error: e.message });

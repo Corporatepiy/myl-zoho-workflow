@@ -53,6 +53,7 @@ async function insertCall({ call_id, duration_seconds, outcome, transcript, enri
     lead_score:             enrichment.lead_score             || 0,
     lead_quality:           enrichment.lead_quality           || null,
     founder_stage:          enrichment.founder_stage          || null,
+    garment_category:       enrichment.garment_category       || null,
     design_readiness:       enrichment.design_readiness       || null,
     validation_appetite:    enrichment.validation_appetite    || null,
     journey_stage_revenue:  enrichment.journey_stage_revenue  || null,
@@ -95,4 +96,52 @@ async function getBlueprint(email) {
   return data?.blueprint || null;
 }
 
-module.exports = { createPanelAccount, getPanelAccount, insertCall, getRecentCalls, storeBlueprint, getBlueprint };
+// ─────────────────────────────────────────────
+// PATTERNS — aggregated intelligence from past calls
+// ─────────────────────────────────────────────
+
+async function getSimilarCalls({ category = 'all', stage = 'all', limit = 60 } = {}) {
+  let query = supabase
+    .from('calls')
+    .select('founder_stage, garment_category, lead_quality, lead_score, buying_signals, pain_points, objections, summary, cofounder_note')
+    .not('lead_quality', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (stage    !== 'all') query = query.eq('founder_stage',    stage);
+  if (category !== 'all') query = query.eq('garment_category', category);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+async function getLatestPattern({ category = 'all', stage = 'all' } = {}) {
+  const { data } = await supabase
+    .from('call_patterns')
+    .select('content, call_count, generated_at')
+    .eq('category', category)
+    .eq('stage',    stage)
+    .order('generated_at', { ascending: false })
+    .limit(1)
+    .single();
+  return data || null;
+}
+
+async function storePattern({ category, stage, content, call_count }) {
+  const { error } = await supabase.from('call_patterns').insert({
+    category,
+    stage,
+    content,
+    call_count,
+    generated_at: new Date().toISOString(),
+  });
+  if (error) console.warn('[store] storePattern failed:', error.message);
+}
+
+module.exports = {
+  createPanelAccount, getPanelAccount,
+  insertCall, getRecentCalls,
+  storeBlueprint, getBlueprint,
+  getSimilarCalls, getLatestPattern, storePattern,
+};

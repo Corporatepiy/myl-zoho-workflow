@@ -1,6 +1,7 @@
 'use strict';
 
-const { anthropic } = require('../config');
+const { anthropic }          = require('../config');
+const { buildContextBlock }  = require('./patterns');
 
 // ─────────────────────────────────────────────
 // PROMPTS
@@ -242,9 +243,18 @@ const CACHED_ENRICHMENT_SYSTEM = [
 // ─────────────────────────────────────────────
 
 async function blueprint({ name, business, goal, data = {} }) {
+  const contextBlock = await buildContextBlock({
+    category: data.category,
+    stage:    data.stage,
+  }).catch(() => '');
+
+  const system = contextBlock
+    ? [...CACHED_BLUEPRINT_SYSTEM, { type: 'text', text: contextBlock }]
+    : CACHED_BLUEPRINT_SYSTEM;
+
   const text = await claudeCall({
     model:     'claude-opus-4-7',
-    system:    CACHED_BLUEPRINT_SYSTEM,
+    system,
     maxTokens: 2200,
     messages:  [{
       role:    'user',
@@ -254,10 +264,14 @@ async function blueprint({ name, business, goal, data = {} }) {
   return { ...parseJSON(text), name, business, goal, generated_at: new Date().toISOString() };
 }
 
-async function consultBrain({ question, name, primary_goal, brand_context }) {
+async function consultBrain({ question, name, primary_goal, brand_context, category, stage }) {
+  const contextBlock = await buildContextBlock({ category, stage }).catch(() => '');
+  const basePrompt   = consultPrompt(name, primary_goal, brand_context);
+  const system       = contextBlock ? `${basePrompt}\n\n${contextBlock}` : basePrompt;
+
   const text = await claudeCall({
     model:     'claude-sonnet-4-6',
-    system:    consultPrompt(name, primary_goal, brand_context),
+    system,
     maxTokens: 200,
     messages:  [{ role: 'user', content: question }],
   });

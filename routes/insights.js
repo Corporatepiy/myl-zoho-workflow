@@ -1,8 +1,9 @@
 'use strict';
 
 const router = require('express').Router();
-const { getRecentCalls } = require('../store/supabase');
-const { requireAuth }    = require('../middleware/auth');
+const { getRecentCalls, getLatestPattern } = require('../store/supabase');
+const { refreshPatterns }                  = require('../brain/patterns');
+const { requireAuth }                      = require('../middleware/auth');
 
 // Protected — requires x-api-secret header.
 router.get('/', requireAuth, async (req, res) => {
@@ -24,6 +25,33 @@ router.get('/', requireAuth, async (req, res) => {
     });
   } catch (e) {
     console.error('[call-insights]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/insights/patterns?category=dresses&stage=IDEA
+// Returns the latest extracted pattern for a segment.
+router.get('/patterns', requireAuth, async (req, res) => {
+  try {
+    const { category = 'all', stage = 'all' } = req.query;
+    const pattern = await getLatestPattern({ category, stage });
+    res.json(pattern || { message: 'No pattern yet for this segment' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/insights/patterns/refresh
+// Body: { category, stage }  (both optional — defaults to 'all')
+// Manually triggers pattern extraction for a segment.
+router.post('/patterns/refresh', requireAuth, async (req, res) => {
+  try {
+    const { category = 'all', stage = 'all' } = req.body;
+    const patterns = await refreshPatterns({ category, stage });
+    if (!patterns) return res.json({ message: 'Not enough calls yet (need ≥5)' });
+    res.json({ refreshed: true, category, stage, patterns });
+  } catch (e) {
+    console.error('[insights] pattern refresh failed:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
