@@ -9,39 +9,50 @@ async function _send(payload) {
 }
 
 async function sendBrandReport({ to, name, blueprint: bp }) {
-  const b = bp || {};
+  const b    = bp || {};
+  const fn   = name || 'there';
+  const arch = b.brand_archetype    || null;
+  const mom  = b.first_design?.moment_1 || null;
+  const units= b.validation_plan?.units || '10–30 units';
+  const go   = b.validation_plan?.go_signal  || null;
+  const kill = b.validation_plan?.kill_signal || null;
+  const gate = b.scale_gate        || null;
+  const move = b['90_day_move']    || null;
+  const read = b.reading           || null;
+  const panel= process.env.PANEL_URL || 'https://makeyourlabel.com/panel';
+
+  // Plain conversational HTML — no tables, no buttons, no branded headers.
+  // Reads like a personal email from Alex, not a newsletter.
+  const html = `<div style="font-family:Georgia,serif;max-width:560px;font-size:15px;line-height:1.8;color:#1a1a1a">
+
+<p>Hey ${fn},</p>
+
+<p>Just off our call — here is the blueprint I put together for you.</p>
+
+${read ? `<p style="border-left:2px solid #ccc;padding-left:14px;color:#444;font-style:italic">${read}</p>` : ''}
+
+${arch  ? `<p><strong>Your brand archetype:</strong> ${arch}</p>` : ''}
+${mom   ? `<p><strong>First design moment:</strong> ${mom}</p>` : ''}
+
+<p><strong>Validation plan:</strong> Start with ${units}. ${go ? `Go signal — ${go}.` : ''} ${kill ? `Kill signal — ${kill}.` : ''}</p>
+
+${gate  ? `<p><strong>Scale gate:</strong> ${gate}</p>` : ''}
+${move  ? `<p><strong>Your one move right now:</strong> ${move}</p>` : ''}
+
+<p>When you are ready to take the next step, your panel is here: <a href="${panel}" style="color:#5a52c7">${panel}</a></p>
+
+<p>Reply to this email if you want to talk through anything. I am around.</p>
+
+<p>— Alex<br>Make Your Label</p>
+
+</div>`;
+
   await _send({
-    from:    FROM,
+    from:     FROM,
     to,
     reply_to: 'alex@makeyourlabel.com',
-    headers: {
-      'List-Unsubscribe':      `<mailto:unsubscribe@makeyourlabel.com?subject=unsubscribe>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-      'X-Entity-Ref-ID':       `blueprint-${Date.now()}`,
-    },
-    subject: `Your MYL brand blueprint${name ? `, ${name}` : ''}`,
-    html: `<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
-<h1 style="font-size:22px;font-weight:500;margin:0 0 4px">Your brand blueprint</h1>
-<p style="color:#888;font-size:14px;margin:0 0 32px">Make Your Label — design, validate, scale what works</p>
-
-${b.reading ? `<div style="background:#f7f5ff;border-left:3px solid #7F77DD;padding:16px 20px;margin-bottom:28px"><p style="margin:0;font-size:15px;line-height:1.7">${b.reading}</p></div>` : ''}
-
-<table style="width:100%;border-collapse:collapse;margin-bottom:24px">
-  <tr><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:13px;color:#888;width:42%">Brand archetype</td><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:14px;font-weight:500">${b.brand_archetype || '—'}</td></tr>
-  <tr><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:13px;color:#888">First design moment</td><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:14px">${b.first_design?.moment_1 || '—'}</td></tr>
-  <tr><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:13px;color:#888">Validation units</td><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:14px">${b.validation_plan?.units || '10–50 units'}</td></tr>
-  <tr><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:13px;color:#888">Go signal</td><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:14px">${b.validation_plan?.go_signal || '—'}</td></tr>
-  <tr><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:13px;color:#888">Kill signal</td><td style="padding:10px 0;border-bottom:1px solid #eee;font-size:14px;color:#c0392b">${b.validation_plan?.kill_signal || '—'}</td></tr>
-  <tr><td style="padding:10px 0;font-size:13px;color:#888">Scale gate</td><td style="padding:10px 0;font-size:14px;font-weight:500">${b.scale_gate || '—'}</td></tr>
-</table>
-
-${b['90_day_move'] ? `<p style="font-size:14px;margin:0 0 24px"><strong>Your 90-day move:</strong> ${b['90_day_move']}</p>` : ''}
-
-<div style="border-top:1px solid #eee;padding-top:24px">
-  <a href="${process.env.PANEL_URL || 'https://makeyourlabel.com/panel'}" style="display:inline-block;background:#7F77DD;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px">Start your journey →</a>
-</div>
-<p style="font-size:12px;color:#aaa;margin:24px 0 0">Make Your Label · Reply to talk to Alex</p>
-</body>`,
+    subject:  `${fn}, here is your brand blueprint`,
+    html,
   });
 }
 
