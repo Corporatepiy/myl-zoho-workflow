@@ -2,9 +2,15 @@
 
 const { resend, FROM } = require('../config');
 
+async function _send(payload) {
+  const { data, error } = await resend.emails.send(payload);
+  if (error) throw new Error(`Resend error: ${error.message || JSON.stringify(error)}`);
+  return data;
+}
+
 async function sendBrandReport({ to, name, blueprint: bp }) {
   const b = bp || {};
-  await resend.emails.send({
+  await _send({
     from:    FROM,
     to,
     subject: `Your MYL brand blueprint${name ? `, ${name}` : ''}`,
@@ -35,7 +41,7 @@ ${b['90_day_move'] ? `<p style="font-size:14px;margin:0 0 24px"><strong>Your 90-
 
 async function sendWelcomeEmail({ to, name, tier, credit }) {
   const isPro = tier === 'pro';
-  await resend.emails.send({
+  await _send({
     from:    FROM,
     to,
     subject: `Welcome to MYL${name ? `, ${name}` : ''} — $${credit} credit loaded`,
@@ -51,7 +57,7 @@ ${isPro ? `<div style="background:#f0f7ff;border-left:3px solid #378ADD;padding:
 }
 
 async function sendConsultationConfirmation({ to, name, business }) {
-  await resend.emails.send({
+  await _send({
     from:    FROM,
     to,
     subject: `Co-founder call confirmed${name ? `, ${name}` : ''}`,
