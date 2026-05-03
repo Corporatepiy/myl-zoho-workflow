@@ -13,6 +13,12 @@ async function sendBrandReport({ to, name, blueprint: bp }) {
   await _send({
     from:    FROM,
     to,
+    reply_to: 'alex@makeyourlabel.com',
+    headers: {
+      'List-Unsubscribe':      `<mailto:unsubscribe@makeyourlabel.com?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      'X-Entity-Ref-ID':       `blueprint-${Date.now()}`,
+    },
     subject: `Your MYL brand blueprint${name ? `, ${name}` : ''}`,
     html: `<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
 <h1 style="font-size:22px;font-weight:500;margin:0 0 4px">Your brand blueprint</h1>
@@ -42,6 +48,11 @@ ${b['90_day_move'] ? `<p style="font-size:14px;margin:0 0 24px"><strong>Your 90-
 async function sendWelcomeEmail({ to, name, tier, credit }) {
   const isPro = tier === 'pro';
   await _send({
+    reply_to: 'alex@makeyourlabel.com',
+    headers: {
+      'List-Unsubscribe':      `<mailto:unsubscribe@makeyourlabel.com?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
     from:    FROM,
     to,
     subject: `Welcome to MYL${name ? `, ${name}` : ''} — $${credit} credit loaded`,
