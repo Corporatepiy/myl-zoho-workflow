@@ -3,6 +3,11 @@
 const { resend, FROM } = require('../config');
 
 async function _send(payload) {
+  if (process.env.SANDBOX_MODE === 'true') {
+    const owner = process.env.OWNER_EMAIL || 'corporate@makeyourlabel.com';
+    payload = { ...payload, to: owner, subject: `[SANDBOX → ${payload.to}] ${payload.subject}` };
+    console.log(`[SANDBOX] email redirected to ${owner}: ${payload.subject}`);
+  }
   const { data, error } = await resend.emails.send(payload);
   if (error) throw new Error(`Resend error: ${error.message || JSON.stringify(error)}`);
   return data;
@@ -91,4 +96,25 @@ async function sendConsultationConfirmation({ to, name, business }) {
   });
 }
 
-module.exports = { sendBrandReport, sendWelcomeEmail, sendConsultationConfirmation };
+async function sendPaymentLinkEmail({ to, name, tier, paymentUrl }) {
+  const isPro   = tier === 'pro';
+  const amount  = isPro ? 499 : 99;
+  const label   = isPro ? 'Pro (with dedicated co-founder)' : 'Basic';
+  await _send({
+    from:     FROM,
+    to,
+    reply_to: 'alex@makeyourlabel.com',
+    subject:  `${name ? name + ' — ' : ''}your MYL link is ready`,
+    html: `<div style="font-family:Georgia,serif;max-width:560px;font-size:15px;line-height:1.8;color:#1a1a1a">
+<p>Hey ${name || 'there'},</p>
+<p>Great talking just now. Here's your link to get started — $${amount} ${label}.</p>
+<p style="border-left:2px solid #7F77DD;padding-left:14px;color:#444">Every dollar comes straight back to your panel as credit toward your first order. This is just so we can align resources on both sides and get your spot confirmed.</p>
+${isPro ? `<p><strong>Pro includes:</strong> dedicated co-founder assigned within 24 hours, full strategy call, priority sampling queue.</p>` : ''}
+<div style="margin:28px 0"><a href="${paymentUrl}" style="display:inline-block;background:#7F77DD;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:500">Get started — $${amount} →</a></div>
+<p>Once you're in, your panel opens and we get moving on your first design brief.</p>
+<p>— Alex<br>Make Your Label</p>
+</div>`,
+  });
+}
+
+module.exports = { sendBrandReport, sendWelcomeEmail, sendConsultationConfirmation, sendPaymentLinkEmail };
