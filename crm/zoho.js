@@ -35,6 +35,10 @@ function splitName(fullName) {
 // ─────────────────────────────────────────────
 
 async function createLead({ name, email, phone, business, goal, category, budget }) {
+  if (process.env.SANDBOX_MODE === 'true') {
+    console.log(`[SANDBOX] createLead suppressed for ${email}`);
+    return;
+  }
   const token = await getZohoToken();
   const { First_Name, Last_Name } = splitName(name);
   await axios.post(`${CRM_BASE}/Leads`, {
@@ -59,6 +63,10 @@ async function createLead({ name, email, phone, business, goal, category, budget
 // — verify API names match what's in your Zoho account (Settings → Fields).
 async function updateLead({ email, leadScore, leadQuality, callSummary, founderStage, designReadiness, validationAppetite, journeyStageRevenue }) {
   if (!email) return;
+  if (process.env.SANDBOX_MODE === 'true') {
+    console.log(`[SANDBOX] updateLead suppressed for ${email}`);
+    return;
+  }
   const token  = await getZohoToken();
   const search = await axios.get(`${CRM_BASE}/Leads/search`, {
     params:  { criteria: `(Email:equals:${email})` },
@@ -156,6 +164,10 @@ async function addTask({ email, task, due_date }) {
 // Shows up in Activities → Calls and in each lead's timeline.
 // Gives the owner full call volume visibility inside Zoho (MYL Intelligence view).
 async function logCall({ email, callId, durationSeconds, summary, leadScore, leadQuality, outcome }) {
+  if (process.env.SANDBOX_MODE === 'true') {
+    console.log(`[SANDBOX] logCall suppressed callId=${callId}`);
+    return;
+  }
   try {
     const token = await getZohoToken();
     const lead  = email ? await getLead(email).catch(() => null) : null;
