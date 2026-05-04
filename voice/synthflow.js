@@ -10,6 +10,10 @@ function getAgentForPhone(phone) {
 }
 
 async function triggerCall({ to, agentId, variables = {} }) {
+  if (process.env.SANDBOX_MODE === 'true') {
+    console.log(`[SANDBOX] triggerCall suppressed → ${to} (${variables.name || 'unknown'})`);
+    return { sandbox: true, suppressed: true, to, name: variables.name };
+  }
   const res = await axios.post(
     `${SF_BASE}/calls`,
     {
