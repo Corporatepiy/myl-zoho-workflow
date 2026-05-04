@@ -13,6 +13,14 @@ app.use(express.json({
 }));
 app.use(cors());
 
+// ── Management dashboard (password-protected HTML) ────────────
+app.get('/manage', (req, res) => {
+  if (req.query.key !== process.env.API_SECRET) {
+    return res.status(401).send('<h2>Access denied</h2>');
+  }
+  res.sendFile(__dirname + '/management-dashboard.html');
+});
+
 // ── Routes ────────────────────────────────────────────────────
 app.use('/api/agent',         require('./routes/agent'));
 app.use('/api/intake',        require('./routes/intake'));
@@ -21,6 +29,8 @@ app.use('/api/paypal',        require('./routes/payment'));
 app.use('/api/panel',         require('./routes/panel'));
 app.use('/api/leads',         require('./routes/leads'));
 app.use('/api/call-insights', require('./routes/insights'));
+app.use('/api/training',      require('./routes/training'));
+app.use('/mcp',               require('./routes/mcp'));
 app.use('/webhook',           require('./routes/webhooks'));
 
 // ── Health ────────────────────────────────────────────────────
