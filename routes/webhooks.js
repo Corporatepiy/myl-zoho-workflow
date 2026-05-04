@@ -8,6 +8,7 @@ const { handleSuccessfulPayment, verifyPayPalWebhook } = require('../payments/pa
 const { parseCustomId }           = require('../payments/paypal');
 const { insertCall, getPanelAccount, getBlueprint } = require('../store/supabase');
 const { sendBrandReport }         = require('../email/resend');
+const { buildContextBlock }       = require('../brain/patterns');
 
 // ── Synthflow post-call webhook ───────────────────────────────
 // Responds 200 immediately so Synthflow doesn't retry.
@@ -170,6 +171,9 @@ router.post('/zoho-lead', async (req, res) => {
 
       console.log(`[zoho-lead] triggering call → ${phone} (${name})`);
 
+      // Pre-call briefing: inject segment intelligence so Alex starts warm
+      const segment_intel = await buildContextBlock({ category }).catch(() => '');
+
       await triggerCall({
         to:      phone,
         agentId,
@@ -182,6 +186,7 @@ router.post('/zoho-lead', async (req, res) => {
           budget:   budget   || '',
           market:   market   || '',
           source,
+          segment_intel: segment_intel || '',
           today:    new Date().toLocaleDateString('en-US', {
             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
           }),
