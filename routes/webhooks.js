@@ -3,7 +3,7 @@
 const router = require('express').Router();
 const { enrichCall }              = require('../brain');
 const { refreshPatterns, shouldRefresh } = require('../brain/patterns');
-const { updateLead }              = require('../crm/zoho');
+const { updateLead, logCall }     = require('../crm/zoho');
 const { handleSuccessfulPayment, verifyPayPalWebhook } = require('../payments/paypal');
 const { parseCustomId }           = require('../payments/paypal');
 const { insertCall, getPanelAccount, getBlueprint } = require('../store/supabase');
@@ -58,6 +58,17 @@ router.post('/synthflow', (req, res) => {
         outcome:          disconnection_reason,
         transcript,
         enrichment,
+      });
+
+      // Log call to Zoho CRM Calls module (MYL Intelligence view) — always, even without email
+      logCall({
+        email:           vars.email || null,
+        callId:          call_id,
+        durationSeconds: duration,
+        summary:         enrichment.summary,
+        leadScore:       enrichment.lead_score,
+        leadQuality:     enrichment.lead_quality,
+        outcome:         disconnection_reason,
       });
 
       if (vars.email) {
