@@ -16,7 +16,10 @@ router.post('/', intakeLimit, async (req, res) => {
     const agentId = getAgentForPhone(phone);
     if (!agentId) return res.status(400).json({ error: 'No agent configured for this region' });
 
-    await createLead({ name, email, phone, business, goal, category, budget });
+    // CRM lead creation is fire-and-forget — Zoho token expiry must not block calls
+    createLead({ name, email, phone, business, goal, category, budget })
+      .catch(e => console.warn('[intake] Zoho createLead failed (non-fatal):', e.message));
+
     await triggerCall({
       to:      phone,
       agentId,
