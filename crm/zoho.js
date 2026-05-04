@@ -61,7 +61,7 @@ async function updateLead({ email, leadScore, leadQuality, callSummary, founderS
   if (!email) return;
   const token  = await getZohoToken();
   const search = await axios.get(`${CRM_BASE}/Leads/search`, {
-    params:  { email },
+    params:  { criteria: `(Email:equals:${email})` },
     headers: zohoHeaders(token),
   });
   const lead = search.data?.data?.[0];
@@ -107,7 +107,17 @@ async function getLead(email) {
   if (!email) return null;
   const token  = await getZohoToken();
   const search = await axios.get(`${CRM_BASE}/Leads/search`, {
-    params:  { email },
+    params:  { criteria: `(Email:equals:${email})` },
+    headers: zohoHeaders(token),
+  });
+  return search.data?.data?.[0] || null;
+}
+
+async function searchLeadByName(name) {
+  if (!name) return null;
+  const token  = await getZohoToken();
+  const search = await axios.get(`${CRM_BASE}/Leads/search`, {
+    params:  { criteria: `(Full_Name:contains:${name})` },
     headers: zohoHeaders(token),
   });
   return search.data?.data?.[0] || null;
@@ -142,4 +152,34 @@ async function addTask({ email, task, due_date }) {
   }, { headers: zohoHeaders(token) });
 }
 
-module.exports = { createLead, updateLead, createDeal, getLead, addNote, addTask };
+// Logs every Synthflow call as a native Zoho CRM Call activity.
+// Shows up in Activities → Calls and in each lead's timeline.
+// Gives the owner full call volume visibility inside Zoho (MYL Intelligence view).
+async function logCall({ email, callId, durationSeconds, summary, leadScore, leadQuality, outcome }) {
+  try {
+    const token = await getZohoToken();
+    const lead  = email ? await getLead(email).catch(() => null) : null;
+
+    const mins = Math.floor((durationSeconds || 0) / 60);
+    const secs = (durationSeconds || 0) % 60;
+    const dur  = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+    const record = {
+      Subject:          `MYL Alex — ${leadQuality || 'Unknown'} lead (Score: ${leadScore || 0})`,
+      Call_Type:        'Outbound',
+      Call_Duration:    dur,
+      Call_Result:      outcome === 'human_goodbye' ? 'Completed' : 'No Answer / Left Message',
+      Description:      summary || '',
+      Call_Purpose:     'Prospecting',
+    };
+    if (lead?.id) {
+      record.Who_Id = { id: lead.id, module: 'Leads' };
+    }
+
+    await axios.post(`${CRM_BASE}/Calls`, { data: [record] }, { headers: zohoHeaders(token) });
+  } catch (e) {
+    console.warn('[zoho] logCall failed (non-fatal):', e.message);
+  }
+}
+
+module.exports = { createLead, updateLead, createDeal, getLead, searchLeadByName, addNote, addTask, logCall };
