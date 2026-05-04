@@ -3,6 +3,7 @@
 const router = require('express').Router();
 const { createLead }              = require('../crm/zoho');
 const { getAgentForPhone, triggerCall } = require('../voice/synthflow');
+const { buildContextBlock }       = require('../brain/patterns');
 const { intakeLimit }             = require('../middleware/rate');
 
 // Landing page form → create Zoho lead → trigger Synthflow call.
@@ -20,6 +21,9 @@ router.post('/', intakeLimit, async (req, res) => {
     createLead({ name, email, phone, business, goal, category, budget })
       .catch(e => console.warn('[intake] Zoho createLead failed (non-fatal):', e.message));
 
+    // Pre-call briefing: inject what we know about this segment so Alex starts warm
+    const segment_intel = await buildContextBlock({ category }).catch(() => '');
+
     await triggerCall({
       to:      phone,
       agentId,
@@ -33,6 +37,7 @@ router.post('/', intakeLimit, async (req, res) => {
         market:   market   || '',
         moment:   moment   || '',
         source:   'intake-form',
+        segment_intel: segment_intel || '',
         today:    new Date().toLocaleDateString('en-US', {
           weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
         }),
