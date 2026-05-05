@@ -32,6 +32,7 @@ app.use('/api/call-insights', require('./routes/insights'));
 app.use('/api/training',      require('./routes/training'));
 app.use('/mcp',               require('./routes/mcp'));
 app.use('/webhook',           require('./routes/webhooks'));
+app.use('/api/sync',          require('./routes/sync'));
 
 // ── Health ────────────────────────────────────────────────────
 app.get('/health', (_, res) => res.json({
