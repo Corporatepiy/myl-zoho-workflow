@@ -157,14 +157,14 @@ router.get('/calls', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const calls = await getRecentCalls(limit);
     res.json(calls.map(c => ({
-      call_id:   c.call_id,
-      duration:  c.duration_seconds,
-      outcome:   c.outcome,
-      score:     c.enrichment?.lead_score,
-      quality:   c.enrichment?.lead_quality,
-      stage:     c.enrichment?.founder_stage,
-      category:  c.enrichment?.garment_category,
-      summary:   c.enrichment?.summary,
+      call_id:    c.call_id,
+      duration:   c.duration_seconds,
+      outcome:    c.outcome,
+      score:      c.lead_score,
+      quality:    c.lead_quality,
+      stage:      c.founder_stage,
+      category:   c.garment_category,
+      summary:    c.summary,
       transcript: c.transcript,
       created_at: c.created_at,
     })));
