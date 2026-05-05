@@ -34,7 +34,7 @@ function splitName(fullName) {
 // LEADS
 // ─────────────────────────────────────────────
 
-async function createLead({ name, email, phone, business, goal, category, budget }) {
+async function createLead({ name, email, phone, business, goal, category, budget, source }) {
   if (process.env.SANDBOX_MODE === 'true') {
     console.log(`[SANDBOX] createLead suppressed for ${email}`);
     return;
@@ -49,7 +49,7 @@ async function createLead({ name, email, phone, business, goal, category, budget
       Phone:       phone,
       Company:     business || 'Not mentioned',
       Description: goal     || '',
-      Lead_Source: 'MYL Brain',
+      Lead_Source: source || 'MYL Brain',
       // Custom fields — must match your Zoho field API names
       garmentTypes:  category || '',
       budgetRange:   budget   || '',
@@ -77,7 +77,7 @@ async function updateLead({ email, leadScore, leadQuality, callSummary, founderS
     console.warn('[zoho] lead not found for email:', email);
     return;
   }
-  await axios.put(`${CRM_BASE}/Leads/${lead.id}`, {
+  const updateRes = await axios.put(`${CRM_BASE}/Leads/${lead.id}`, {
     data: [{
       Description:          callSummary         || '',
       Rating:               leadQuality         || '',
@@ -91,6 +91,7 @@ async function updateLead({ email, leadScore, leadQuality, callSummary, founderS
       journeyStageRevenue:  journeyStageRevenue || '',
     }],
   }, { headers: zohoHeaders(token) });
+  console.log('[zoho] updateLead response:', JSON.stringify(updateRes.data?.data?.[0] || updateRes.data));
 }
 
 // ─────────────────────────────────────────────
