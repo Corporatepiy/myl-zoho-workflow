@@ -9,7 +9,7 @@ const { intakeLimit }             = require('../middleware/rate');
 // Landing page form → create Zoho lead → trigger Synthflow call.
 router.post('/', intakeLimit, async (req, res) => {
   try {
-    const { name, email, phone, business, goal, category, budget, market, moment } = req.body;
+    const { name, email, phone, business, goal, category, budget, market, moment, source } = req.body;
     if (!name || !email || !phone) {
       return res.status(400).json({ error: 'name, email, phone required' });
     }
@@ -18,7 +18,7 @@ router.post('/', intakeLimit, async (req, res) => {
     if (!agentId) return res.status(400).json({ error: 'No agent configured for this region' });
 
     // CRM lead creation is fire-and-forget — Zoho token expiry must not block calls
-    createLead({ name, email, phone, business, goal, category, budget })
+    createLead({ name, email, phone, business, goal, category, budget, source })
       .catch(e => console.warn('[intake] Zoho createLead failed (non-fatal):', e.message));
 
     // Pre-call briefing: inject what we know about this segment so Alex starts warm
