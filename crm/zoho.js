@@ -99,6 +99,10 @@ async function updateLead({ email, leadScore, leadQuality, callSummary, founderS
 // ─────────────────────────────────────────────
 
 async function createDeal({ name, email, phone, business, goal }) {
+  if (process.env.SANDBOX_MODE === 'true') {
+    console.log(`[SANDBOX] createDeal suppressed for ${email}`);
+    return;
+  }
   const token = await getZohoToken();
   const { First_Name, Last_Name } = splitName(name);
   await axios.post(`${CRM_BASE}/Deals`, {
@@ -132,6 +136,10 @@ async function searchLeadByName(name) {
 }
 
 async function addNote({ email, note }) {
+  if (process.env.SANDBOX_MODE === 'true') {
+    console.log(`[SANDBOX] addNote suppressed for ${email}`);
+    return;
+  }
   const lead = await getLead(email);
   if (!lead) throw new Error('Lead not found: ' + email);
   const token = await getZohoToken();
@@ -146,6 +154,10 @@ async function addNote({ email, note }) {
 }
 
 async function addTask({ email, task, due_date }) {
+  if (process.env.SANDBOX_MODE === 'true') {
+    console.log(`[SANDBOX] addTask suppressed for ${email}`);
+    return;
+  }
   const lead = await getLead(email);
   if (!lead) throw new Error('Lead not found: ' + email);
   const token = await getZohoToken();
