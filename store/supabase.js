@@ -129,13 +129,10 @@ async function getLatestPattern({ category = 'all', stage = 'all' } = {}) {
 }
 
 async function storePattern({ category, stage, content, call_count }) {
-  const { error } = await supabase.from('call_patterns').insert({
-    category,
-    stage,
-    content,
-    call_count,
-    generated_at: new Date().toISOString(),
-  });
+  const { error } = await supabase.from('call_patterns').upsert(
+    { category, stage, content, call_count, generated_at: new Date().toISOString() },
+    { onConflict: 'category,stage' },
+  );
   if (error) console.warn('[store] storePattern failed:', error.message);
 }
 
