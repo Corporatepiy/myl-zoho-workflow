@@ -18,26 +18,47 @@ router.post('/synthflow', (req, res) => {
 
   setImmediate(async () => {
     try {
+      console.log('RAW SYNTHFLOW PAYLOAD:', JSON.stringify(req.body, null, 2));
+
       const payload = req.body?.call || req.body;
-      const {
-        call_id,
-        call_status,
-        transcript,
-        dynamic_variables:  vars = {},
-        start_timestamp,
-        end_timestamp,
-        disconnection_reason,
-      } = payload;
 
-      // Synthflow sends 'completed' or 'ended' depending on version
-      const TERMINAL = ['ended', 'completed', 'finished'];
-      if (!TERMINAL.includes(call_status)) return;
+      const call_id  = payload.call_id  || payload.id || payload.callId || '';
+      const status   = payload.call_status || payload.event_type || payload.status || '';
 
-      const duration = (start_timestamp && end_timestamp)
-        ? Math.round((end_timestamp - start_timestamp) / 1000)
-        : 0;
+      // Guard: only process terminal call events
+      const TERMINAL = ['ended', 'completed', 'finished', 'call_ended'];
+      if (!TERMINAL.includes(status)) {
+        console.log(`[synthflow] ignoring non-terminal event: "${status}" — call_id: ${call_id}`);
+        return;
+      }
 
-      console.log(`[synthflow] ${call_id} ended — ${duration}s`);
+      // Dynamic variables — Synthflow nests them under different keys by version
+      const vars = payload.dynamic_variables || payload.variables || payload.call_variables || {};
+
+      // Transcript — string or [{role, content}] array depending on Synthflow version
+      const transcriptRaw = payload.transcript || payload.messages;
+      const transcript = Array.isArray(transcriptRaw)
+        ? transcriptRaw.map(m => `${m.role}: ${m.content}`).join('\n')
+        : (transcriptRaw || '');
+
+      // Duration — prefer direct field, fall back to timestamp diff
+      // Synthflow may send timestamps in seconds OR milliseconds
+      const dur_direct  = payload.call_duration || payload.duration;
+      const ts_start    = payload.start_timestamp || payload.start_time;
+      const ts_end      = payload.end_timestamp   || payload.end_time;
+      let   duration    = 0;
+      if (dur_direct != null) {
+        duration = Math.round(Number(dur_direct)) || 0;
+      } else if (ts_start && ts_end) {
+        const s = Number(ts_start);
+        const e = Number(ts_end);
+        // timestamps > 1e12 are milliseconds; otherwise seconds
+        duration = s > 1e12 ? Math.round((e - s) / 1000) : Math.round(e - s);
+      }
+
+      const disconnection_reason = payload.disconnection_reason || payload.end_reason || payload.hangup_cause || '';
+
+      console.log(`[synthflow] ${call_id} ended — status: ${status}, duration: ${duration}s, email: ${vars.email || 'none'}`);
 
       // If the agent didn't call send_brand_email during the call,
       // retrieve the stored blueprint and send it now.
@@ -49,17 +70,38 @@ router.post('/synthflow', (req, res) => {
         }
       }
 
-      if (!transcript) return;
+      if (!transcript) {
+        console.warn(`[synthflow] ${call_id} — no transcript, skipping enrichment`);
+        return;
+      }
 
-      const enrichment = await enrichCall({ transcript, leadData: vars });
+      // BUG 2 fix: enrichCall fallback so chain never hangs on Sonnet failure
+      let enrichment;
+      try {
+        enrichment = await enrichCall({ transcript, leadData: vars });
+      } catch (err) {
+        console.error('[synthflow webhook] enrichCall failed:', err.message);
+        enrichment = {
+          lead_score: null, summary: null, founder_stage: null,
+          garment_category: null, lead_quality: 'Cold',
+          design_readiness: null, validation_appetite: null,
+          journey_stage_revenue: null, pain_points: [], buying_signals: [],
+          objections: [], next_step: null, cofounder_note: null,
+        };
+      }
 
-      await insertCall({
-        call_id,
-        duration_seconds: duration,
-        outcome:          disconnection_reason,
-        transcript,
-        enrichment,
-      });
+      // BUG 3 fix: log Supabase errors loudly but don't abort Zoho/logCall
+      try {
+        await insertCall({
+          call_id,
+          duration_seconds: duration,
+          outcome:          disconnection_reason,
+          transcript,
+          enrichment,
+        });
+      } catch (e) {
+        console.error('[synthflow webhook] Supabase insertCall failed:', e.message);
+      }
 
       // Log call to Zoho CRM Calls module (MYL Intelligence view) — always, even without email
       logCall({
