@@ -21,6 +21,9 @@ app.get('/manage', (req, res) => {
   res.sendFile(__dirname + '/management-dashboard.html');
 });
 
+// ── Satya logo ────────────────────────────────────────────────
+app.get('/satya', (_, res) => res.sendFile(__dirname + '/satya-logo.html'));
+
 // ── Routes ────────────────────────────────────────────────────
 app.use('/api/agent',         require('./routes/agent'));
 app.use('/api/intake',        require('./routes/intake'));
@@ -55,4 +58,15 @@ app.listen(PORT, () => {
 │  $99 Basic · $499 Pro · credits back to panel    │
 └──────────────────────────────────────────────────┘
   `);
+
+  // ── Lead sync poller — runs every 2 minutes ──────────────────
+  // Finds new Zoho leads with no call yet and dials them automatically.
+  // Self-healing: if a call trigger fails, the next poll retries it.
+  if (process.env.SANDBOX_MODE !== 'true') {
+    const { syncNewLeads } = require('./routes/sync');
+    setInterval(() => {
+      syncNewLeads().catch(e => console.warn('[sync poller]', e.message));
+    }, 2 * 60 * 1000);
+    console.log('[sync] lead poller active — checking every 2 min');
+  }
 });
