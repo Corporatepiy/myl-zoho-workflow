@@ -62,7 +62,10 @@ async function insertCall({ call_id, duration_seconds, outcome, transcript, enri
     cofounder_note:         enrichment.cofounder_note         || null,
     created_at:             new Date().toISOString(),
   });
-  if (error) console.warn('[store] insertCall failed:', error.message);
+  if (error) {
+    console.error('[store] insertCall failed:', error.message, error.details || '');
+    throw error;
+  }
 }
 
 async function getRecentCalls(limit = 50) {
