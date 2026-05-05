@@ -70,7 +70,7 @@ router.post('/synthflow', (req, res) => {
         leadScore:       enrichment.lead_score,
         leadQuality:     enrichment.lead_quality,
         outcome:         disconnection_reason,
-      });
+      }).catch(e => console.warn('[synthflow webhook] logCall failed:', e.message));
 
       if (vars.email) {
         updateLead({
