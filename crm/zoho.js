@@ -206,4 +206,4 @@ async function logCall({ email, callId, durationSeconds, summary, leadScore, lea
   }
 }
 
-module.exports = { createLead, updateLead, createDeal, getLead, searchLeadByName, addNote, addTask, logCall };
+module.exports = { createLead, updateLead, createDeal, getLead, searchLeadByName, addNote, addTask, logCall, getZohoToken };
