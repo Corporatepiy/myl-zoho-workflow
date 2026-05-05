@@ -4,9 +4,8 @@ const axios                = require('axios');
 const paypal               = require('@paypal/checkout-server-sdk');
 const { paypalClient, TIERS, PAYPAL_BASE } = require('../config');
 const { getPanelAccount, createPanelAccount } = require('../store/supabase');
-const { updateLead }       = require('../crm/zoho');
-const { sendWelcomeEmail } = require('../email/resend');
-const { createDeal }       = require('../crm/zoho');
+const { updateLead, createDeal } = require('../crm/zoho');
+const { sendWelcomeEmail }       = require('../email/resend');
 
 // ─────────────────────────────────────────────
 // PAYPAL OAUTH — used only for webhook verification
