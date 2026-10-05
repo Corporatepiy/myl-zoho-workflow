@@ -100,11 +100,14 @@ async function updateLead({ email, leadScore, leadQuality, callSummary, founderS
 // ─────────────────────────────────────────────
 
 async function createDeal({ name, email, phone, business, goal, amount, stage }) {
-  if (process.env.SANDBOX_MODE === 'true') {
+  const dealPayloadLog = JSON.stringify({ Stage: stage || 'Consultation Booked', Amount: amount || null, Email: email || null, Phone: phone || null, business: business || 'Fashion Brand' });
+  if (process.env.SANDBOX_MODE === 'true' && process.env.SANDBOX_ALLOW_DEALS !== 'true') {
     // Dry run (MYL AYRA): show the exact deal the sync would read — Amount, Email, Phone, Stage — before any flip.
-    console.log(`[SANDBOX] createDeal suppressed for ${email} — would create: ${JSON.stringify({ Stage: stage || 'Consultation Booked', Amount: amount || null, Email: email || null, Phone: phone || null, business: business || 'Fashion Brand' })}`);
+    console.log(`[SANDBOX] createDeal suppressed for ${email} — would create: ${dealPayloadLog}`);
     return;
   }
+  // Scoped flip (5 Oct 2026): SANDBOX_ALLOW_DEALS=true lets the paid deal reach Zoho while the dialer and emails stay asleep.
+  console.log(`[deal] creating for ${email}: ${dealPayloadLog}`);
   const token = await getZohoToken();
   const { First_Name, Last_Name } = splitName(name);
   await axios.post(`${CRM_BASE}/Deals`, {
