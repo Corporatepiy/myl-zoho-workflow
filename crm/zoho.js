@@ -99,9 +99,10 @@ async function updateLead({ email, leadScore, leadQuality, callSummary, founderS
 // We store email + phone in the Description so the team has it.
 // ─────────────────────────────────────────────
 
-async function createDeal({ name, email, phone, business, goal }) {
+async function createDeal({ name, email, phone, business, goal, amount, stage }) {
   if (process.env.SANDBOX_MODE === 'true') {
-    console.log(`[SANDBOX] createDeal suppressed for ${email}`);
+    // Dry run (MYL AYRA): show the exact deal the sync would read — Amount, Email, Phone, Stage — before any flip.
+    console.log(`[SANDBOX] createDeal suppressed for ${email} — would create: ${JSON.stringify({ Stage: stage || 'Consultation Booked', Amount: amount || null, Email: email || null, Phone: phone || null, business: business || 'Fashion Brand' })}`);
     return;
   }
   const token = await getZohoToken();
@@ -109,7 +110,10 @@ async function createDeal({ name, email, phone, business, goal }) {
   await axios.post(`${CRM_BASE}/Deals`, {
     data: [{
       Deal_Name:    `${First_Name} ${Last_Name} — ${business || 'Fashion Brand'}`,
-      Stage:        'Consultation Booked',
+      Stage:        stage || 'Consultation Booked',
+      ...(amount ? { Amount: amount } : {}),
+      ...(email ? { Email: email } : {}),          // the connector's Zoho→CAPI sync reads Email + Amount off the deal
+      ...(phone ? { Phone: phone } : {}),          // and hashes Phone too when present
       Description:  `${goal || ''}\nContact: ${email || ''} | ${phone || ''}`.trim(),
       Closing_Date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     }],
