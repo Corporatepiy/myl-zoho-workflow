@@ -99,7 +99,7 @@ async function updateLead({ email, leadScore, leadQuality, callSummary, founderS
 // We store email + phone in the Description so the team has it.
 // ─────────────────────────────────────────────
 
-async function createDeal({ name, email, phone, business, goal }) {
+async function createDeal({ name, email, phone, business, goal, amount, stage }) {
   if (process.env.SANDBOX_MODE === 'true') {
     console.log(`[SANDBOX] createDeal suppressed for ${email}`);
     return;
@@ -109,7 +109,9 @@ async function createDeal({ name, email, phone, business, goal }) {
   await axios.post(`${CRM_BASE}/Deals`, {
     data: [{
       Deal_Name:    `${First_Name} ${Last_Name} — ${business || 'Fashion Brand'}`,
-      Stage:        'Consultation Booked',
+      Stage:        stage || 'Consultation Booked',
+      ...(amount ? { Amount: amount } : {}),
+      ...(email ? { Email: email } : {}),          // the connector's Zoho→CAPI sync reads Email + Amount off the deal
       Description:  `${goal || ''}\nContact: ${email || ''} | ${phone || ''}`.trim(),
       Closing_Date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     }],

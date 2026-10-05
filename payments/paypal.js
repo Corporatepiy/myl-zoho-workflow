@@ -115,6 +115,8 @@ async function handleSuccessfulPayment({ email, name, tier, orderId }) {
   await createPanelAccount({ email, name, tier, credit: t.credit });
 
   await Promise.allSettled([
+    // One Purchase path (5 Oct 2026): the Zoho deal carries the money; the connector's Zoho→CAPI sync sends Purchase once.
+    createPaidDeal({ name, email, tier, orderId, amount: Number(t.price) }),
     updateLead({
       email,
       leadQuality:         'Hot',
@@ -125,6 +127,14 @@ async function handleSuccessfulPayment({ email, name, tier, orderId }) {
     sendWelcomeEmail({ to: email, name, tier, credit: t.credit }),
     tier === 'pro' && assignAccountManager({ email, name }),
   ]);
+}
+
+async function createPaidDeal({ name, email, tier, orderId, amount }) {
+  try {
+    await createDeal({ name, email, business: `${tier === 'pro' ? 'Pro' : 'Basic'} onboarding`, goal: `PayPal ${orderId || ''}`,
+                       amount, stage: 'Accepted' });
+    console.log(`[payment] Zoho deal created — ${tier} — ${amount} — ${orderId}`);
+  } catch (e) { console.log(`[payment] Zoho deal failed — ${e.response?.status || e.message}`); }
 }
 
 async function assignAccountManager({ email, name }) {
